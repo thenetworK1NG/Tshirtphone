@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D T-Shirt Customizer</title>
+    <script>
+        // Preload the template image
+        window.templateImage = new Image();
+        window.templateImage.crossOrigin = 'Anonymous';
+        window.templateImage.src = 'template.png';
+        console.log('Preloading template image from:', window.templateImage.src);
+    </script>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: Arial, sans-serif;
+        }
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        label {
+            color: white;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        button, input[type="color"] {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            min-width: 100px;
+        }
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        input[type="color"] {
+            width: 40px;
+            height: 40px;
+            padding: 2px;
+            background: none;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        input[type="color"]:hover {
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <div id="controls">
+            <div class="control-group">
+                <label for="color-picker">T-Shirt Color:</label>
+                <input type="color" id="color-picker" value="#ffffff" title="Choose a color">
+            </div>
+            <div class="control-group">
+                <button id="toggle-rotation" title="Toggle auto-rotation">Pause Rotation</button>
+                <button id="reset" title="Reset view and color">Reset</button>
+                <button id="fullscreen" title="Toggle fullscreen">Fullscreen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; color: white; font-size: 24px; z-index: 1000;">
+        Loading 3D model...
+    </div>
+
+    <!-- Import Three.js -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/geometries/DecalGeometry.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
