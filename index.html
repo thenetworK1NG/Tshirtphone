@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>3D Model Viewer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        width: 100%;
+        min-height: 100vh;
+        background: url('./backgrounf/background.png') no-repeat center center fixed;
+        background-size: cover;
+        color: white;
+        font-family: 'Arial', sans-serif;
+        overflow: hidden;
+        touch-action: none; /* Prevents default touch behaviors */
+      }
+
+      /* Add this new style for dynamic background loading */
+      body.github-pages {
+        background-image: url('/Tshirtphone/backgrounf/background.png');
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
+        z-index: 0;
+      }
+
+      #root {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+        z-index: 1;
+      }
+
+      .canvas-container {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+      }
+
+      .content {
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        z-index: 1000;
+        padding: 20px;
+        opacity: 0;
+        transform: translateY(-20px);
+        animation: fadeInDown 0.8s ease forwards;
+      }
+
+      @keyframes fadeInDown {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      h1 {
+        font-size: clamp(1.5rem, 5vw, 2.5rem);
+        margin-bottom: 1rem;
+        background: linear-gradient(45deg, #ffffff, #e0e0e0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: relative;
+        display: inline-block;
+      }
+
+      h1::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #ffffff, transparent);
+        animation: lineExpand 1s ease forwards 0.5s;
+      }
+
+      @keyframes lineExpand {
+        to {
+          width: 100%;
+        }
+      }
+
+      p {
+        font-size: clamp(0.9rem, 3vw, 1.2rem);
+        color: #ffffff;
+        max-width: min(600px, 90%);
+        margin: 0 auto;
+        line-height: 1.6;
+        background: rgba(255, 255, 255, 0.15);
+        padding: clamp(10px, 3vw, 15px) clamp(15px, 4vw, 25px);
+        border-radius: 15px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Navigation buttons */
+      .nav-button {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.15);
+        border: none;
+        color: white;
+        font-size: clamp(1.5rem, 6vw, 2rem);
+        width: clamp(40px, 10vw, 60px);
+        height: clamp(40px, 10vw, 60px);
+        border-radius: 50%;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s ease;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation;
+      }
+
+      .nav-button:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .nav-button.left {
+        left: clamp(10px, 3vw, 20px);
+      }
+
+      .nav-button.right {
+        right: clamp(10px, 3vw, 20px);
+      }
+
+      /* Model indicators */
+      .model-indicators {
+        position: absolute;
+        bottom: clamp(10px, 4vw, 20px);
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: clamp(8px, 2vw, 10px);
+        z-index: 1000;
+      }
+
+      .model-indicator {
+        width: clamp(8px, 2.5vw, 12px);
+        height: clamp(8px, 2.5vw, 12px);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        touch-action: manipulation;
+      }
+
+      .model-indicator.active {
+        background: rgba(255, 255, 255, 1);
+        transform: scale(1.2);
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+      }
+
+      .loading-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loading-spinner {
+        width: clamp(40px, 8vw, 50px);
+        height: clamp(40px, 8vw, 50px);
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #000000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Touch instruction overlay */
+      .touch-instruction {
+        position: fixed;
+        bottom: clamp(60px, 15vh, 100px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.15);
+        padding: 10px 20px;
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        font-size: clamp(0.8rem, 2.5vw, 1rem);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 1000;
+      }
+
+      .touch-instruction.visible {
+        opacity: 1;
+      }
+
+      @media (max-width: 768px) {
+        .content {
+          padding: 15px;
+        }
+
+        p {
+          padding: 10px 15px;
+        }
+      }
+    </style>
+    <!-- Three.js Dependencies -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.162.0/examples/jsm/loaders/GLTFLoader.js",
+          "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.162.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+    <script>
+      // Check if we're on GitHub Pages and apply the correct class
+      if (window.location.hostname === 'thenetwork1ng.github.io') {
+        document.body.classList.add('github-pages');
+      }
+    </script>
+    <script type="module" src="./assets/index.js"></script>
+  </head>
+  <body>
+    <div class="loading-overlay">
+      <div class="loading-spinner"></div>
+    </div>
+    <div id="root">
+      <div class="content">
+        <h1>3D Model Gallery</h1>
+        <p>Use arrows or swipe to navigate. Touch and drag to rotate.</p>
+      </div>
+      <div class="touch-instruction">Drag to rotate</div>
+    </div>
+  </body>
+</html> 
