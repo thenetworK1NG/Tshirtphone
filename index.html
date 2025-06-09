@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>3D Model Viewer</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        width: 100%;
+        min-height: 100vh;
+        background: url('./backgrounf/background.png') no-repeat center center fixed;
+        background-size: cover;
+        background-position: center center;
+        color: white;
+        font-family: 'Arial', sans-serif;
+        overflow: hidden;
+        touch-action: none; /* Prevents default touch behaviors */
+      }
+
+      /* Mobile background */
+      @media (max-width: 768px) {
+        body {
+          background-image: url('./backgrounf/foon.png');
+          background-position: center 70%; /* Lowered background much more */
+        }
+
+        .content {
+          padding-top: 10px; /* Less padding on mobile */
+        }
+
+        .content h1 {
+          font-size: 1.8rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .content p {
+          max-width: 85%;
+          background: rgba(255, 255, 255, 0.2);
+          color: #1a1a1a; /* Darker text */
+          font-weight: 500;
+        }
+      }
+
+      /* GitHub Pages specific backgrounds */
+      body.github-pages {
+        background-image: url('/Tshirtphone/backgrounf/background.png');
+      }
+
+      @media (max-width: 768px) {
+        body.github-pages {
+          background-image: url('/Tshirtphone/backgrounf/foon.png');
+          background-position: center 70%;
+        }
+      }
+
+      body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.2) 100%);
+        z-index: 0;
+      }
+
+      #root {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+        z-index: 1;
+      }
+
+      .canvas-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transition: z-index 0s;
+        z-index: 1;
+      }
+
+      /* Content styles */
+      .content {
+        position: fixed;
+        bottom: 120px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        z-index: 2;
+        padding: 20px;
+        pointer-events: none;
+      }
+
+      h1 {
+        font-size: clamp(1.2rem, 4vw, 2rem);
+        margin-bottom: 0.5rem;
+        background: linear-gradient(45deg, #1a1a1a, #333333);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        position: relative;
+        display: inline-block;
+      }
+
+      p {
+        font-size: clamp(0.8rem, 2.5vw, 1rem);
+        color: #1a1a1a;
+        max-width: min(600px, 90%);
+        margin: 0 auto;
+        line-height: 1.4;
+        background: rgba(255, 255, 255, 0.25);
+        padding: clamp(8px, 2vw, 12px) clamp(12px, 3vw, 20px);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.1);
+        font-weight: 500;
+      }
+
+      /* Model indicators */
+      .model-indicators {
+        position: fixed;
+        bottom: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: clamp(8px, 2vw, 10px);
+        z-index: 2;
+        pointer-events: auto;
+      }
+
+      .model-indicator {
+        width: clamp(8px, 2.5vw, 12px);
+        height: clamp(8px, 2.5vw, 12px);
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        touch-action: manipulation;
+      }
+
+      .model-indicator.active {
+        background: rgba(255, 255, 255, 1);
+        transform: scale(1.2);
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+      }
+
+      .loading-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .loading-spinner {
+        width: clamp(40px, 8vw, 50px);
+        height: clamp(40px, 8vw, 50px);
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-top-color: #000000;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Touch instruction at very bottom */
+      .touch-instruction {
+        position: fixed;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.25);
+        padding: 8px 16px;
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #1a1a1a;
+        font-size: clamp(0.8rem, 2.5vw, 1rem);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 1;
+        font-weight: 500;
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.1);
+      }
+
+      .touch-instruction.visible {
+        opacity: 1;
+      }
+
+      /* Mobile adjustments */
+      @media (max-width: 768px) {
+        .content {
+          bottom: 100px; /* Slightly higher on mobile */
+        }
+
+        .content h1 {
+          font-size: 1.2rem;
+          margin-bottom: 0.4rem;
+        }
+
+        .content p {
+          max-width: 85%;
+          font-size: 0.9rem;
+          padding: 8px 12px;
+        }
+
+        .model-indicators {
+          bottom: 40px;
+        }
+
+        .touch-instruction {
+          bottom: 8px;
+        }
+      }
+
+      .nav-button {
+        z-index: 2;
+        /* ... existing styles ... */
+      }
+    </style>
+    <!-- Three.js Dependencies -->
+    <script async src="https://unpkg.com/es-module-shims@1.8.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.162.0/build/three.module.js",
+          "three/examples/jsm/loaders/GLTFLoader.js": "https://unpkg.com/three@0.162.0/examples/jsm/loaders/GLTFLoader.js",
+          "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.162.0/examples/jsm/controls/OrbitControls.js"
+        }
+      }
+    </script>
+    <script>
+      // Check if we're on GitHub Pages and apply the correct class
+      if (window.location.hostname === 'thenetwork1ng.github.io') {
+        document.body.classList.add('github-pages');
+      }
+    </script>
+    <script type="module" src="./assets/index.js"></script>
+  </head>
+  <body>
+    <div class="loading-overlay">
+      <div class="loading-spinner"></div>
+    </div>
+    <div id="root">
+      <div class="content">
+        <h1>3D Model Gallery</h1>
+        <p>Use arrows or swipe to navigate. Touch and drag to rotate.</p>
+      </div>
+      <div class="touch-instruction">Drag to rotate</div>
+    </div>
+  </body>
+</html> 
